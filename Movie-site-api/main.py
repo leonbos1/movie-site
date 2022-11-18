@@ -26,11 +26,13 @@ db = SQLAlchemy(app)
 class UserModel(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String, unique=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
 
 user_fields = {
     'id': fields.Integer,
+    'public_id': fields.String,
     'username': fields.String,
     'password': fields.String
 }
@@ -59,77 +61,72 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorator
 
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
-class User(Resource):
-    def id_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
+@marshal_with(user_fields)
+@token_required
+def get(self, current_user):
+    result = UserModel.query.all()
 
-    @marshal_with(user_fields)
-    @token_required
-    def get(self, current_user):
-        result = UserModel.query.all()
+    return result
 
-        return result
+@app.route('/v1/register', methods=['POST'])
+def register():
+    """register user
+    """
+    args = request.get_json(force=True)
+    data = UserModel(
+        public_id=id_generator(80),
+        username=args['username'],
+        password=args['password'],
+    )
+    db.session.add(data)
+    db.session.commit()
+    return "succes", 200
 
-    def post(self):
-        """register user
-        """
-        args = request.get_json(force=True)
-        data = UserModel(
-            public_id=self.id_generator(80),
-            username=args['username'],
-            password=args['password'],
-        )
-        db.session.add(data)
+@token_required
+def delete():
+    input_json = request.get_json(force=True)
+    id = input_json['id']
+    result = UserModel.query.filter_by(id=id).first()
+    if result:
+        db.session.delete(result)
         db.session.commit()
-        return 200
+        return "succes", 200
+    return "User not found", 404
 
-    @token_required
-    def delete(self, current_user):
-        input_json = request.get_json(force=True)
-        id = input_json['id']
-        result = UserModel.query.filter_by(id=id).first()
-        if result:
-            db.session.delete(result)
-            db.session.commit()
-            return "succes", 200
-        return "User not found", 404
+@token_required
+def put(self, current_user):
+    input_json = request.get_json(force=True)
+    id = input_json['id']
+    username = input_json['username']
+    password=input_json['password']
 
-    @token_required
-    def put(self, current_user):
-        input_json = request.get_json(force=True)
-        id = input_json['id']
-        username = input_json['username']
-        password=input_json['password']
+    result = UserModel.query.filter_by(id=id).first()
 
-        result = UserModel.query.filter_by(id=id).first()
+    if result:
+        result.username = username
+        result.password = password
+        db.session.commit()
+        return "succes", 200
+        
+    return "User not found", 404
 
-        if result:
-            result.username = username
-            result.password = password
-            db.session.commit()
-            return "succes", 200
-            
-        return "User not found", 404
+@app.route('/v1/login', methods=['POST'])
+def login():
+    input_json = request.get_json(force=True)
+    username = input_json['username']
+    password = input_json['password']
+    user = UserModel.query.filter(UserModel.username==username).first()
 
-class Login(Resource):
-    def post(self):
-       # try:
-            input_json = request.get_json(force=True)
-            username = input_json['username']
-            password = input_json['password']
-            user = UserModel.query.filter(UserModel.username==username).first()
-
-            if user:
-                if password == user.password:
-                    token = jwt.encode({'public_id': user.public_id}, app.config['SECRET_KEY'], algorithm='HS256')
-                    return jsonify({'token': token, 'user': user.username})
-                return "unauthorized", 401
-            
-            return "unauthorized", 401
-
-        #except:
-         #   return "unauthorized", 401
+    if user:
+        if password == user.password:
+            token = jwt.encode({'public_id': user.public_id}, app.config['SECRET_KEY'], algorithm='HS256')
+            return jsonify({'token': token, 'user': user.username})
+        return "unauthorized", 401
+    
+    return "unauthorized", 401
 
 @app.route('/checklogin')
 def check_login():
@@ -141,10 +138,8 @@ def check_login():
     except:
         return "unauthorized", 401
 
-api.add_resource(Login, "/login")
-api.add_resource(User, "/user")
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+        
     app.run(host='192.168.178.69',port=1500, debug=True, threaded=True)

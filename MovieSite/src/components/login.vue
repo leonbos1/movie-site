@@ -1,41 +1,71 @@
 <template>
-    <div>
-        <form class="login-form">
-            <div class="form-group">
-                <label for="exampleInputEmail1">Email address</label>
-                <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
-            </div>
-            <div class="form-group">
-                <label for="exampleInputPassword1">Password</label>
-                <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
-            </div>
-            <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" id="exampleCheck1">
-                <label class="form-check-label" for="exampleCheck1">Check me out</label>
-            </div>
-        </form>
-    </div>
-  </template>
+  <div>
+    <form v-on:submit="loginMethod" class="login-form">
+      <div class="form-group">
+        <input
+          type="text"
+          v-model="username"
+          class="form-control"
+          placeholder="Enter username"
+        />
+      </div>
+      <div class="form-group">
+        <input
+          type="password"
+          v-model="password"
+          class="form-control"
+          placeholder="Password"
+        />
+      </div>
+      <button class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+</template>
   
-  <script>
-  
-  export default {
-  
-  
-    name: "LoginPage",
-  
-    components: {
+<script>
+export default {
+  name: "LoginPage",
+
+  data: function () {
+    return {
+      username: "",
+      password: "",
+      url: "http://192.168.178.69:1500"
+    };
   },
-  };
-  </script>
+
+  components: {},
+
+  methods: {
+    loginMethod(e) {
+      e.preventDefault();
+      fetch(this.url + "/v1/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: this.username,
+          password: this.password,
+        }),
+      })
+        .then((response) => response.json())
+        //.then((data) => data.text())
+        .then((data) => {
+          localStorage.setItem("token", data["token"]);
+          localStorage.setItem("username", data["user"]);
+          window.location.href = "/";
+        });
+    },
+  },
+};
+</script>
   
   <!-- Add "scoped" attribute to limit CSS to this component only -->
   <style lang="scss" scoped>
-  .login-form {
-    width: 50%;
-    margin: 0 auto;
-  }
-
-
-  </style>
+.login-form {
+  width: 50%;
+  margin: 0 auto;
+}
+</style>
    
