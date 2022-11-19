@@ -37,6 +37,20 @@ user_fields = {
     'password': fields.String
 }
 
+class MovieModel(db.Model):
+    __tablename__ = 'movies'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(80), unique=True, nullable=False)
+    description = db.Column(db.String(120), unique=True, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+
+movie_fields = {
+    'id': fields.Integer,
+    'title': fields.String,
+    'description': fields.String,
+    'year': fields.Integer
+}
+
 def token_required(f):
     """Decorator yo check token
     """
@@ -128,7 +142,7 @@ def login():
     
     return "unauthorized", 401
 
-@app.route('/checklogin')
+@app.route('/v1/checklogin')
 def check_login():
     headers = request.headers
     token = headers['token']
@@ -137,6 +151,18 @@ def check_login():
         return "succes", 200
     except:
         return "unauthorized", 401
+
+@marshal_with(movie_fields)
+@app.route('/v1/movies', methods=['GET'])
+def get_movies():
+    """Get movies from API
+    """
+    page = int(request.args.get('page'))
+    result = MovieModel.query.paginate(page=page, per_page=10, error_out=True)
+
+    return result.items, 200
+    
+
 
 if __name__ == "__main__":
     with app.app_context():

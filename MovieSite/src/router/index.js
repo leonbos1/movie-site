@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../components/home.vue'
 import Login from '../components/login.vue'
 import Register from '../components/register.vue'
-import Movie from '../components/movie.vue'
+import Movies from '../components/movies.vue'
 
 const routes = [
     {
@@ -23,7 +23,7 @@ const routes = [
     {
         path: '/movies',
         name: 'Movies',
-        component: Movie
+        component: Movies
     }
 ]
 
