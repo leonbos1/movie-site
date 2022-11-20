@@ -43,12 +43,14 @@ class MovieModel(db.Model):
     title = db.Column(db.String(80), unique=True, nullable=False)
     description = db.Column(db.String(120), unique=True, nullable=False)
     year = db.Column(db.Integer, nullable=False)
+    image = db.Column(db.String(120), unique=True, nullable=False)
 
 movie_fields = {
     'id': fields.Integer,
     'title': fields.String,
     'description': fields.String,
-    'year': fields.Integer
+    'year': fields.Integer,
+    'image': fields.String
 }
 
 def token_required(f):
@@ -152,8 +154,8 @@ def check_login():
     except:
         return "unauthorized", 401
 
-@marshal_with(movie_fields)
 @app.route('/v1/movies', methods=['GET'])
+@marshal_with(movie_fields)
 def get_movies():
     """Get movies from API
     """
@@ -161,8 +163,63 @@ def get_movies():
     result = MovieModel.query.paginate(page=page, per_page=10, error_out=True)
 
     return result.items, 200
-    
 
+@app.route('/v1/movies', methods=['PUT'])
+def put_movies():
+    """Put movies from API
+    """
+    input_json = request.get_json(force=True)
+    id = input_json['id']
+    title = input_json['title']
+    description = input_json['description']
+    year = input_json['year']
+    image = input_json['image']
+
+    result = MovieModel.query.filter_by(id=id).first()
+
+    if result:
+        result.title = title
+        result.description = description
+        result.year = year
+        result.image = image
+        db.session.commit()
+        return "succes", 200
+
+    return "id not found", 404
+
+@app.route('/v1/movies', methods=['POST'])
+def post_movies():
+    """Post movies from API
+    """
+    input_json = request.get_json(force=True)
+    title = input_json['title']
+    description = input_json['description']
+    year = input_json['year']
+    image = input_json['image']
+
+    data = MovieModel(
+        title=title,
+        description=description,
+        year=year,
+        image=image
+    )
+    #TODO some more edge case checks?
+    db.session.add(data)
+    db.session.commit()
+    return "succes", 200
+    
+@app.route('/v1/movies', methods=['DELETE'])
+def delete_movies():
+    """Delete movies from API
+    """
+    input_json = request.get_json(force=True)
+    id = input_json['id']
+    result = MovieModel.query.filter_by(id=id).first()
+    if result:
+        db.session.delete(result)
+        db.session.commit()
+        return "succes", 200
+    return "id not found", 404
 
 if __name__ == "__main__":
     with app.app_context():

@@ -3,6 +3,7 @@
       <ul>
         <li><a class="active" href="/">Home</a></li>
         <li><a href="/movies">Movies</a></li>
+        <li><a href="/manage-movies">Manage Movies</a></li>
         <li><a  href="/register">Register</a></li>
         <li><a  href="/login">Login</a></li>
 
