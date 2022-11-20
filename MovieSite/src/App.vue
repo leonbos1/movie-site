@@ -4,8 +4,10 @@
         <li><a class="active" href="/">Home</a></li>
         <li><a href="/movies">Movies</a></li>
         <li><a href="/manage-movies">Manage Movies</a></li>
-        <li><a  href="/register">Register</a></li>
-        <li><a  href="/login">Login</a></li>
+        <li><a href="/manage-users">Manage Users</a></li>
+        <li v-if="!loggedIn"><a  href="/register">Register</a></li>
+        <li  v-if="!loggedIn"><a  href="/login">Login</a></li>
+        <li v-if="loggedIn" ><a @click="logout">Logout</a></li>
 
       </ul>
  
@@ -22,12 +24,42 @@ export default {
   name: "App",
   data: function () {
     return {
+      loggedIn: false,
+      url: "http://192.168.178.69:1500",
     };
   },
   mounted() {
+    this.checkLogin();
   },
   methods: {
+    checkLogin() {
+      let token = localStorage.getItem("token");
+      fetch(this.url + "/v1/checklogin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "token": token,
+        },
+      })
+        .then((response) => {
+          if (response.status == 200) {
+            this.loggedIn = true;
+          } else {
+            this.loggedIn = false;
+          }
+        });      
+    },
+
+    logout() {
+    //TODO logout to api?
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    window.location.href = "/";
+    this.loggedIn = false;
   },
+  },
+
+  
 };
 </script>
 
